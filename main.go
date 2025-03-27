@@ -6,7 +6,7 @@ import (
 	"API3/core/middleware"
 	"github.com/gin-gonic/gin"
 	registro "API3/registro/src"
-	usuarios "API3/usuarios/src"
+	//usuarios "API3/usuarios/src"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 
 	
 	registro.Init(router)
-	usuarios.Init(router)
+	//usuarios.Init(router)
 
 	
 	log.Println("Servidor corriendo en el puerto 8080")
