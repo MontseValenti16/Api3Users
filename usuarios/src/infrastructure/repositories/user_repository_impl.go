@@ -1,26 +1,57 @@
 package repositories
 
 import (
+	"API3/core/mysql"
+	"database/sql"
 	"errors"
 	"API3/usuarios/src/domain/entities"
 )
 
-// Usuarios simulados (en un entorno real se consultaría una base de datos)
-var users = []entities.User{
-	{ID: 1, Email: "test@example.com", Password: "password123"}, // Contraseña en claro para fines de ejemplo
+type UserRepositoryImpl struct {
+	db *sql.DB
 }
-
-type UserRepositoryImpl struct{}
 
 func NewUserRepository() *UserRepositoryImpl {
-	return &UserRepositoryImpl{}
+	return &UserRepositoryImpl{
+		db: mysql.DB, 
+	}
 }
 
-func (repo *UserRepositoryImpl) GetByEmail(email string) (entities.User, error) {
-	for _, u := range users {
-		if u.Email == email {
-			return u, nil
+
+func (repo *UserRepositoryImpl) GetByUser(NombreUsuario string) (entities.User, error) {
+	query := `SELECT id_usuario, id_persona, nombre_usuario, password
+	          FROM usuario
+	          WHERE nombre_usuario = ?`
+	row := repo.db.QueryRow(query, NombreUsuario)
+
+	var user entities.User
+	err := row.Scan(
+		&user.IDUsuario,
+		&user.IDPersona,
+		&user.NombreUsuario,
+		&user.Password,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return entities.User{}, errors.New("usuario no encontrado")
 		}
+		return entities.User{}, err
 	}
-	return entities.User{}, errors.New("usuario no encontrado")
+	return user, nil
+}
+
+// CreateUser inserta un nuevo registro en la tabla usuario y retorna el usuario creado.
+func (repo *UserRepositoryImpl) CreateUser(user entities.User) (entities.User, error) {
+	query := `INSERT INTO usuario (nombre_usuario,  password, id_persona )
+	          VALUES (?, ?, ?)`
+	result, err := repo.db.Exec(query,  user.NombreUsuario, user.Password, user.IDPersona,)
+	if err != nil {
+		return entities.User{}, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return entities.User{}, err
+	}
+	user.IDUsuario = int(id)
+	return user, nil
 }

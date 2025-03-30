@@ -10,7 +10,7 @@ import (
 )
 
 func Init(r *gin.Engine) {
-	repo := repositories.NewUserRepository()
+	repo := repositories.NewPersonaRepository()
 	uc := user_usecase.NewUserUseCase(repo)
 	ctrl := controllers.NewUserController(uc)
 	routes.RegisterUserRoutes(r, ctrl)
