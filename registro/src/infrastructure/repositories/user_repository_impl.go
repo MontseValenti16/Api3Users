@@ -14,15 +14,15 @@ type PersonaRepositoryImpl struct {
 
 func NewPersonaRepository() *PersonaRepositoryImpl {
 	return &PersonaRepositoryImpl{
-		db: mysql.DB, // Reutilizamos la conexión global inicializada en core/mysql
+		db: mysql.DB, 
 	}
 }
 
 // Create inserta un nuevo registro en la tabla persona y retorna la persona creada.
 func (repo *PersonaRepositoryImpl) Create(p entities.User) (entities.User, error) {
-	query := `INSERT INTO persona (nombre, apellido, edad, fecha_nac, lista_invitado) 
-	          VALUES (?, ?, ?, ?, ?)`
-	result, err := repo.db.Exec(query, p.Nombre, p.Apellido, p.Edad, p.FechaNac, p.ListaInvitados)
+	query := `INSERT INTO persona (nombre, apellidoP, estatura, fecha_nac, lista_invitado, apellidoM) 
+	          VALUES (?, ?, ?, ?, ?, ?)`
+	result, err := repo.db.Exec(query, p.Nombre, p.ApellidoP, p.Estatura, p.FechaNac, p.ListaInvitados, p.ApellidoM)
 	if err != nil {
 		return entities.User{}, err
 	}
@@ -33,7 +33,7 @@ func (repo *PersonaRepositoryImpl) Create(p entities.User) (entities.User, error
 
 // GetByID busca una persona por su ID.
 func (repo *PersonaRepositoryImpl) GetByID(id int) (entities.User, error) {
-	query := `SELECT id_persona, nombre, apellido, edad, fecha_nac, lista_invitado
+	query := `SELECT id_persona, nombre, apellidoP, estatura, fecha_nac, lista_invitado, apellidoM
 	          FROM persona
 	          WHERE id_persona = ?`
 	row := repo.db.QueryRow(query, id)
@@ -42,10 +42,11 @@ func (repo *PersonaRepositoryImpl) GetByID(id int) (entities.User, error) {
 	err := row.Scan(
 		&persona.IDPersona,
 		&persona.Nombre,
-		&persona.Apellido,
-		&persona.Edad,
+		&persona.ApellidoP,
+		&persona.Estatura,
 		&persona.FechaNac,
 		&persona.ListaInvitados,
+		&persona.ApellidoM,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -58,7 +59,7 @@ func (repo *PersonaRepositoryImpl) GetByID(id int) (entities.User, error) {
 
 // GetAll retorna todas las personas registradas.
 func (repo *PersonaRepositoryImpl) GetAll() ([]entities.User, error) {
-	query := `SELECT id_persona, nombre, apellido, edad, fecha_nac, lista_invitado
+	query := `SELECT id_persona, nombre, apellidoP, estatura, fecha_nac, lista_invitado, apellidoM
 	          FROM persona`
 	rows, err := repo.db.Query(query)
 	if err != nil {
@@ -72,10 +73,11 @@ func (repo *PersonaRepositoryImpl) GetAll() ([]entities.User, error) {
 		if err := rows.Scan(
 			&p.IDPersona,
 			&p.Nombre,
-			&p.Apellido,
-			&p.Edad,
+			&p.ApellidoP,
+			&p.Estatura,
 			&p.FechaNac,
 			&p.ListaInvitados,
+			&p.ApellidoM,
 		); err != nil {
 			return nil, err
 		}
@@ -87,9 +89,9 @@ func (repo *PersonaRepositoryImpl) GetAll() ([]entities.User, error) {
 // Update actualiza los campos de una persona existente.
 func (repo *PersonaRepositoryImpl) Update(p entities.User) (entities.User, error) {
 	query := `UPDATE persona
-	          SET nombre = ?, apellido = ?, edad = ?, fecha_nac = ?, lista_invitado = ?
+	          SET nombre = ?, apellidoP = ?, estatura = ?, fecha_nac = ?, lista_invitado = ? , apellidoM = ?
 	          WHERE id_persona = ?`
-	result, err := repo.db.Exec(query, p.Nombre, p.Apellido, p.Edad, p.FechaNac, p.ListaInvitados, p.IDPersona)
+	result, err := repo.db.Exec(query, p.Nombre, p.ApellidoP, p.Estatura, p.FechaNac, p.ListaInvitados, p.ApellidoM, p.IDPersona)
 	if err != nil {
 		return entities.User{}, err
 	}

@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"golang.org/x/crypto/bcrypt"
 	"API3/usuarios/src/domain/entities"
 	"API3/usuarios/src/domain/repositories"
 )
 
-// La llave secreta se carga desde la variable de entorno JWT_SECRET.
+
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
 
 type AuthUseCase struct {
@@ -21,17 +22,17 @@ func NewAuthUseCase(repo repositories.UserRepository) *AuthUseCase {
 	return &AuthUseCase{Repo: repo}
 }
 
-// Login valida las credenciales y, de ser correctas, genera y retorna un token JWT.
 func (uc *AuthUseCase) Login(NombreUsuario, password string) (string, error) {
 	user, err := uc.Repo.GetByUser(NombreUsuario)
 	if err != nil {
 		return "", err
 	}
-	// En un entorno real, comparar la contraseña con su hash (ej. bcrypt)
-	if password != user.Password {
+	// Comparar la contraseña usando bcrypt.
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return "", errors.New("credenciales inválidas")
 	}
 
+	// Crear el token JWT con claims.
 	claims := jwt.MapClaims{
 		"user_id":        user.IDUsuario,
 		"nombre_usuario": user.NombreUsuario,
@@ -45,9 +46,17 @@ func (uc *AuthUseCase) Login(NombreUsuario, password string) (string, error) {
 	return tokenString, nil
 }
 
-// RegisterUser crea un nuevo usuario en la tabla usuario.
-// Se espera que el front envíe también el id_persona obtenido tras registrar la persona.
+// RegisterUser crea un nuevo usuario en la tabla usuario. 
+// Antes de insertar, cifra la contraseña utilizando bcrypt.
 func (uc *AuthUseCase) RegisterUser(user entities.User) (entities.User, error) {
-	// Aquí podrías validar si el email ya existe, etc.
+	// Verificar si ya existe el usuario (esto lo puedes agregar según tus necesidades).
+	// Cifrar la contraseña.
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return entities.User{}, err
+	}
+	user.Password = string(hashedPassword)
+
+	// Crear el usuario en el repositorio.
 	return uc.Repo.CreateUser(user)
 }
