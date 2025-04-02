@@ -22,14 +22,14 @@ func NewAuthUseCase(repo repositories.UserRepository) *AuthUseCase {
 	return &AuthUseCase{Repo: repo}
 }
 
-func (uc *AuthUseCase) Login(NombreUsuario, password string) (string, error) {
+func (uc *AuthUseCase) Login(NombreUsuario, password string) (string, int, string,error) {
 	user, err := uc.Repo.GetByUser(NombreUsuario)
 	if err != nil {
-		return "", err
+		return "",0,"", err
 	}
 	// Comparar la contraseña usando bcrypt.
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return "", errors.New("credenciales inválidas")
+		return "",0,"", errors.New("credenciales inválidas")
 	}
 
 	// Crear el token JWT con claims.
@@ -41,13 +41,12 @@ func (uc *AuthUseCase) Login(NombreUsuario, password string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
-		return "", err
+		return "",0,"", err
 	}
-	return tokenString, nil
+	return tokenString, user.IDUsuario, user.NombreUsuario , nil
 }
 
-// RegisterUser crea un nuevo usuario en la tabla usuario. 
-// Antes de insertar, cifra la contraseña utilizando bcrypt.
+
 func (uc *AuthUseCase) RegisterUser(user entities.User) (entities.User, error) {
 	// Verificar si ya existe el usuario (esto lo puedes agregar según tus necesidades).
 	// Cifrar la contraseña.

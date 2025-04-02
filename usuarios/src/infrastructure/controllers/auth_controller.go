@@ -23,6 +23,8 @@ type LoginRequest struct {
 
 type LoginResponse struct {
 	Token string `json:"token"`
+	IDUsuario      int    `json:"id_usuario"`
+	NombreUsuario  string `json:"nombre_usuario"`
 }
 
 // RegisterRequest define los campos necesarios para registrar un usuario.
@@ -40,12 +42,16 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	token, err := c.UseCase.Login(req.NombreUsuario, req.Password)
+	token, userID, username, err := c.UseCase.Login(req.NombreUsuario, req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, LoginResponse{Token: token})
+	ctx.Header("Authorization", "Bearer "+token)
+	
+	ctx.JSON(http.StatusOK, LoginResponse{Token: token,
+		IDUsuario: userID,
+		NombreUsuario: username})
 }
 
 func (c *AuthController) Register(ctx *gin.Context) {
