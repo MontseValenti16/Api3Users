@@ -2,25 +2,20 @@ package main
 
 import (
 	"API3/core/middleware"
-	"API3/core/mysql"
-	registro "API3/registro/src"
-	usuarios "API3/usuarios/src"
-	"log"
+	"API3/src/mac_address/infraestructure"
+	"API3/src/registro/infrastructure"
+	"API3/src/usuarios"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	mysql.InitDB()
-
-	router := gin.Default()
-	router.Use(middleware.CORSMiddleware())
-
-	registro.Init(router)
-	usuarios.Init(router)
-
-	log.Println("Servidor corriendo en el puerto 8080")
-	if err := router.Run(":8080"); err != nil {
-		log.Fatal("Error al iniciar el servidor:", err)
+	r := gin.Default()
+	r.Use(middleware.CORSMiddleware())
+	infraestructure.Init(r)
+	infrastructure.Init(r)
+	usuarios.Init(r)
+	if err := r.Run(":8081"); err != nil {
+		panic(err)
 	}
 }
