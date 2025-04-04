@@ -1,39 +1,71 @@
-package mysql
+package core
 
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 
-	"github.com/joho/godotenv"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 )
 
-var DB *sql.DB
+type Conn_MySQL struct {
+	DB  *sql.DB
+	Err string
+}
 
-func InitDB() {
-	
+func GetDBPool() *Conn_MySQL {
+	error := ""
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Println("Aviso: no se pudo cargar el archivo .env o no existe. Se usarán variables de entorno existentes.")
+		log.Fatalf("Error al cargar el archivo .env: %v", err)
 	}
+	//dbPort := os.Getenv("DB_PORT")
+	dbHost := os.Getenv("DB_HOST")
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASS")
+	dbSchema := os.Getenv("DB_NAME")
 
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASS")
-	host := os.Getenv("DB_HOST")
-	name := os.Getenv("DB_NAME")
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", dbUser, dbPass, dbHost, dbSchema)
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True", user, pass, host, name)
 	db, err := sql.Open("mysql", dsn)
+
 	if err != nil {
-		panic(fmt.Sprintf("Error al abrir la conexión a la base de datos: %v", err))
+		error = fmt.Sprintf("error al abrir la base de datos: %v", err)
 	}
 
-	// Verificar la conexión
-	if err = db.Ping(); err != nil {
-		panic(fmt.Sprintf("No se pudo establecer conexión con la base de datos: %v", err))
+	// Configuración del pool de conexiones
+	db.SetMaxOpenConns(10)
+
+	// Probar la conexión
+	if err := db.Ping(); err != nil {
+		db.Close()
+		error = fmt.Sprintf("error al verificar la conexión a la base de datos: %v", err)
+	}
+	return &Conn_MySQL{DB: db, Err: error}
+}
+
+func (conn *Conn_MySQL) ExecutePreparedQuery(query string, values ...interface{}) (sql.Result, error) {
+	stmt, err := conn.DB.Prepare(query)
+	if err != nil {
+		return nil, fmt.Errorf("error al preparar la consulta: %w", err)
+	}
+	defer stmt.Close()
+
+	result, err := stmt.Exec(values...)
+	if err != nil {
+		return nil, fmt.Errorf("error al ejecutar la consulta preparada: %w", err)
 	}
 
-	DB = db
-	fmt.Println("Conexión exitosa a la base de datos!")
+	return result, nil
+}
+
+func (conn *Conn_MySQL) FetchRows(query string, values ...interface{}) *sql.Rows {
+	rows, err := conn.DB.Query(query, values...)
+	if err != nil {
+		fmt.Printf("error al ejecutar la consulta SELECT: %v", err)
+	}
+
+	return rows
 }
